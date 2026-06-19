@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historical Scene Prompt Builder</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, serif; background: #f5f0e8; color: #2a2018; padding: 2rem; min-height: 100vh; }
+  h1 { font-size: 22px; font-weight: normal; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: #6a5a48; margin-bottom: 2rem; }
+  .form-block { background: #fff; border: 1px solid #d0c4b0; padding: 1.5rem; margin-bottom: 1rem; }
+  label { display: block; font-size: 13px; color: #6a5a48; margin-bottom: 5px; }
+  input, select, textarea {
+    width: 100%; padding: 8px 10px; font-size: 14px; font-family: Georgia, serif;
+    border: 1px solid #c0b4a0; background: #faf7f2; color: #2a2018;
+    margin-bottom: 1rem;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid #8a6a40; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  button {
+    background: #3a2c18; color: #f5f0e8; border: none; padding: 10px 24px;
+    font-size: 14px; font-family: Georgia, serif; cursor: pointer;
+    margin-right: 8px; margin-bottom: 8px;
+  }
+  button:hover { background: #5a4030; }
+  button.secondary { background: #f5f0e8; color: #3a2c18; border: 1px solid #c0b4a0; }
+  button.secondary:hover { background: #e8e0d0; }
+  .output-block { background: #fff; border: 1px solid #d0c4b0; padding: 1.5rem; margin-top: 1rem; display: none; }
+  .output-block.visible { display: block; }
+  .prompt-box { background: #faf7f2; border: 1px solid #c0b4a0; padding: 1rem; font-size: 13px; line-height: 1.7; color: #2a2018; white-space: pre-wrap; min-height: 120px; }
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #8a7060; margin-bottom: 8px; margin-top: 1rem; }
+  .section-title:first-child { margin-top: 0; }
+  .note { font-size: 12px; color: #8a7060; margin-top: 6px; line-height: 1.5; }
+  .ai-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 12px; }
+  .ai-link { display: block; text-align: center; padding: 8px; border: 1px solid #c0b4a0; font-size: 12px; color: #3a2c18; text-decoration: none; background: #faf7f2; }
+  .ai-link:hover { background: #e8e0d0; }
+  .copied { color: #4a7a40; font-size: 12px; display: none; margin-left: 8px; }
+  hr { border: none; border-top: 1px solid #d0c4b0; margin: 1.5rem 0; }
+  .landmark-row { display: flex; gap: 8px; align-items: flex-end; }
+  .landmark-row input { flex: 1; margin-bottom: 0; }
+  .landmark-row button { margin: 0; padding: 8px 12px; font-size: 12px; white-space: nowrap; }
+  #landmark-list { margin-top: 6px; }
+  .landmark-tag { display: inline-block; background: #e8e0d0; font-size: 12px; padding: 3px 8px; margin: 3px; }
+  .landmark-tag span { cursor: pointer; color: #8a4030; margin-left: 4px; }
+  textarea { resize: vertical; }
+</style>
+</head>
+<body>
+
+<h1>Historical Scene Prompt Builder</h1>
+<p class="sub">Enter an address and date. Get a prompt you can paste into any AI image generator.</p>
+
+<div class="form-block">
+  <div class="section-title">Location & date</div>
+  <label for="address">Street address</label>
+  <input type="text" id="address" placeholder="e.g. 1218 Jo Johnston Ave, Nashville TN" />
+
+  <div class="row">
+    <div>
+      <label for="date">Date</label>
+      <input type="date" id="date" />
+    </div>
+    <div>
+      <label for="time-of-day">Time of day</label>
+      <select id="time-of-day">
+        <option value="mid-morning">Mid-morning</option>
+        <option value="noon" selected>Noon / midday</option>
+        <option value="late afternoon">Late afternoon</option>
+        <option value="dusk">Dusk / golden hour</option>
+        <option value="night">Night</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section-title">What's in the scene</div>
+
+  <label for="landmarks">Known landmarks or buildings visible (optional)</label>
+  <div class="landmark-row">
+    <input type="text" id="landmark-input" placeholder="e.g. Marathon Motor Works factory" />
+    <button class="secondary" onclick="addLandmark()">Add</button>
+  </div>
+  <div id="landmark-list"></div>
+
+  <br>
+  <label for="extra-context">Extra historical context you know (optional)</label>
+  <textarea id="extra-context" rows="3" placeholder="e.g. This was an African-American neighborhood called Hell's Half Acre. The street was unpaved. A streetcar line ran nearby."></textarea>
+
+  <div class="section-title">Scene look</div>
+  <div class="row3">
+    <div>
+      <label for="weather">Weather</label>
+      <select id="weather">
+        <option value="overcast">Overcast / cloudy</option>
+        <option value="sunny">Bright sunny</option>
+        <option value="light rain">Light rain</option>
+        <option value="snow">Snow</option>
+        <option value="foggy">Foggy / hazy</option>
+        <option value="stormy">Stormy</option>
+      </select>
+    </div>
+    <div>
+      <label for="photo-style">Photo style</label>
+      <select id="photo-style">
+        <option value="black and white, period film grain, sepia toned">B&W / sepia (period)</option>
+        <option value="full color, photorealistic">Full color photorealistic</option>
+        <option value="hand-tinted early color photograph">Hand-tinted early color</option>
+        <option value="faded color snapshot">Faded color snapshot</option>
+        <option value="daguerreotype">Daguerreotype</option>
+      </select>
+    </div>
+    <div>
+      <label for="view-angle">View angle</label>
+      <select id="view-angle">
+        <option value="street-level looking down the road">Street level looking down road</option>
+        <option value="street-level looking at the building from across the street">Street level facing building</option>
+        <option value="elevated from across the street">Elevated / slightly above</option>
+        <option value="panoramic 180-degree street view">Panoramic wide street view</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="margin-top: 1rem;">
+    <button onclick="buildPrompt()">Build prompt</button>
+    <button class="secondary" onclick="clearAll()">Clear</button>
+  </div>
+</div>
+
+<div class="output-block" id="output">
+
+  <div class="section-title">Your image generation prompt</div>
+  <div class="prompt-box" id="prompt-text"></div>
+
+  <div style="margin-top: 12px;">
+    <button onclick="copyPrompt()">Copy prompt</button>
+    <span class="copied" id="copied-msg">Copied!</span>
+    <button class="secondary" onclick="downloadPrompt()">Download as .txt</button>
+  </div>
+
+  <hr>
+
+  <div class="section-title">Paste this prompt into one of these</div>
+  <div class="ai-links">
+    <a class="ai-link" href="https://www.midjourney.com" target="_blank">Midjourney<br><span style="color:#8a7060;font-size:11px;">Best photorealism</span></a>
+    <a class="ai-link" href="https://firefly.adobe.com" target="_blank">Adobe Firefly<br><span style="color:#8a7060;font-size:11px;">Free tier available</span></a>
+    <a class="ai-link" href="https://chatgpt.com" target="_blank">ChatGPT / DALL-E<br><span style="color:#8a7060;font-size:11px;">Easy to use</span></a>
+    <a class="ai-link" href="https://www.bing.com/images/create" target="_blank">Bing Image Creator<br><span style="color:#8a7060;font-size:11px;">Free, no login</span></a>
+    <a class="ai-link" href="https://stability.ai" target="_blank">Stable Diffusion<br><span style="color:#8a7060;font-size:11px;">Most control</span></a>
+  </div>
+
+  <hr>
+
+  <div class="section-title">Research links for this address</div>
+  <div id="research-links"></div>
+  <p class="note">These open searches pre-loaded with your address and year. Results vary — not all addresses have historical records online.</p>
+
+</div>
+
+<script>
+let landmarks = [];
+
+function addLandmark() {
+  const val = document.getElementById('landmark-input').value.trim();
+  if (!val) return;
+  landmarks.push(val);
+  document.getElementById('landmark-input').value = '';
+  renderLandmarks();
+}
+
+document.getElementById('landmark-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); addLandmark(); }
+});
+
+function renderLandmarks() {
+  const el = document.getElementById('landmark-list');
+  el.innerHTML = landmarks.map((l, i) =>
+    `<span class="landmark-tag">${l}<span onclick="removeLandmark(${i})"> x</span></span>`
+  ).join('');
+}
+
+function removeLandmark(i) {
+  landmarks.splice(i, 1);
+  renderLandmarks();
+}
+
+function getSeasonFromDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T12:00:00');
+  const m = d.getMonth() + 1;
+  if (m <= 2 || m === 12) return 'winter';
+  if (m <= 5) return 'spring';
+  if (m <= 8) return 'summer';
+  return 'autumn';
+}
+
+function getDecade(dateStr) {
+  if (!dateStr) return '';
+  const y = new Date(dateStr + 'T12:00:00').getFullYear();
+  return Math.floor(y / 10) * 10 + 's';
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function buildPrompt() {
+  const address = document.getElementById('address').value.trim();
+  const date = document.getElementById('date').value;
+  const timeOfDay = document.getElementById('time-of-day').value;
+  const weather = document.getElementById('weather').value;
+  const photoStyle = document.getElementById('photo-style').value;
+  const viewAngle = document.getElementById('view-angle').value;
+  const extraContext = document.getElementById('extra-context').value.trim();
+
+  if (!address || !date) {
+    alert('Please enter an address and a date.');
+    return;
+  }
+
+  const formattedDate = formatDate(date);
+  const year = new Date(date + 'T12:00:00').getFullYear();
+  const decade = getDecade(date);
+  const season = getSeasonFromDate(date);
+
+  let landmarkLine = '';
+  if (landmarks.length > 0) {
+    landmarkLine = `\n\nIn the background or visible from this vantage point: ${landmarks.join(', ')}.`;
+  }
+
+  let contextLine = '';
+  if (extraContext) {
+    contextLine = `\n\nHistorical context: ${extraContext}`;
+  }
+
+  const prompt =
+`Historical scene reconstruction — ${formattedDate}
+Location: ${address}
+
+${photoStyle}. ${viewAngle}. ${weather} sky, ${timeOfDay}, ${season} light.
+
+A photo-realistic scene of ${address} as it appeared on ${formattedDate}. The architecture, street surfaces, vehicles, clothing, signage, and street furniture should all be accurate to ${year} (${decade} era). Show the street as it actually existed — not idealized. Include period-accurate details: the condition of the road surface (paved, cobblestone, or dirt as appropriate for ${year}), utility poles or lack thereof, period vehicles or horse-drawn transport, residents in era-appropriate clothing.${landmarkLine}${contextLine}
+
+The image should feel like a genuine documentary photograph taken on this exact date, not a modern reconstruction or illustration. ${photoStyle}. Film grain, lens flare, and photographic artifacts appropriate to the era. No modern elements visible.`;
+
+  document.getElementById('prompt-text').textContent = prompt;
+
+  buildResearchLinks(address, year);
+
+  const output = document.getElementById('output');
+  output.classList.add('visible');
+  output.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function buildResearchLinks(address, year) {
+  const enc = encodeURIComponent(address);
+  const links = [
+    { label: 'Sanborn fire maps (Library of Congress)', url: `https://www.loc.gov/collections/sanborn-maps/?q=${enc}&dates=${year-5}/${year+5}` },
+    { label: 'Historic aerial photos', url: `https://www.historicaerials.com/viewer` },
+    { label: 'Chronicling America newspapers', url: `https://chroniclingamerica.loc.gov/search/pages/results/?state=&date1=${year}&date2=${year}&dateFilterType=yearRange&words=${enc}&sort=relevance` },
+    { label: 'LOC historic photographs', url: `https://www.loc.gov/photos/?q=${enc}&dates=${year-5}/${year+5}` },
+    { label: 'Nashville Public Library digital archive', url: `https://digital.library.nashville.org/digital/search/searchterm/${enc}` },
+    { label: 'Google Earth historical imagery', url: `https://earth.google.com/web/search/${enc}` },
+  ];
+
+  const container = document.getElementById('research-links');
+  container.innerHTML = links.map(l =>
+    `<a href="${l.url}" target="_blank" style="display:block;font-size:13px;color:#3a2c18;padding:5px 0;border-bottom:1px solid #e8e0d0;text-decoration:none;">&rarr; ${l.label}</a>`
+  ).join('');
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const msg = document.getElementById('copied-msg');
+    msg.style.display = 'inline';
+    setTimeout(() => msg.style.display = 'none', 2000);
+  });
+}
+
+function downloadPrompt() {
+  const text = document.getElementById('prompt-text').textContent;
+  const address = document.getElementById('address').value.trim().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const date = document.getElementById('date').value;
+  const filename = `historical_prompt_${address}_${date}.txt`;
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+function clearAll() {
+  document.getElementById('address').value = '';
+  document.getElementById('date').value = '';
+  document.getElementById('extra-context').value = '';
+  document.getElementById('landmark-input').value = '';
+  landmarks = [];
+  renderLandmarks();
+  document.getElementById('output').classList.remove('visible');
+}
+</script>
+
+</body>
+</html>
