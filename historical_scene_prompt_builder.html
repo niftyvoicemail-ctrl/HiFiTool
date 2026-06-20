@@ -50,7 +50,7 @@
 <body>
 
 <h1>Historical Scene Prompt Builder</h1>
-<p class="sub">Enter an address and date. Get a prompt you can paste into any AI image generator.</p>
+<p class="sub">Enter an address and date. Get a research prompt — paste it into Claude (claude.ai) and it'll dig up real historical details, then write you a finished AI image prompt.</p>
 
 <div class="form-block">
   <div class="section-title">Location & date</div>
@@ -129,7 +129,7 @@
 
 <div class="output-block" id="output">
 
-  <div class="section-title">Your image generation prompt</div>
+  <div class="section-title">Step 1 — Paste this into Claude</div>
   <div class="prompt-box" id="prompt-text"></div>
 
   <div style="margin-top: 12px;">
@@ -138,9 +138,15 @@
     <button class="secondary" onclick="downloadPrompt()">Download as .txt</button>
   </div>
 
+  <div class="ai-links">
+    <a class="ai-link" href="https://claude.ai/new" target="_blank">Open Claude<br><span style="color:#8a7060;font-size:11px;">Paste the prompt above here</span></a>
+  </div>
+
+  <p class="note">Claude will search the web for real historical details about this address, then hand you back a finished, fact-based image prompt — same as a researcher would. That finished prompt is what you paste into the image tools below.</p>
+
   <hr>
 
-  <div class="section-title">Paste this prompt into one of these</div>
+  <div class="section-title">Step 2 — Once Claude gives you the finished image prompt, use it here</div>
   <div class="ai-links">
     <a class="ai-link" href="https://www.midjourney.com" target="_blank">Midjourney<br><span style="color:#8a7060;font-size:11px;">Best photorealism</span></a>
     <a class="ai-link" href="https://firefly.adobe.com" target="_blank">Adobe Firefly<br><span style="color:#8a7060;font-size:11px;">Free tier available</span></a>
@@ -151,9 +157,9 @@
 
   <hr>
 
-  <div class="section-title">Research links for this address</div>
+  <div class="section-title">Optional — dig deeper yourself</div>
   <div id="research-links"></div>
-  <p class="note">These open searches pre-loaded with your address and year. Results vary — not all addresses have historical records online.</p>
+  <p class="note">If you want to verify what Claude finds, or dig further, these open pre-loaded searches for your address and year.</p>
 
 </div>
 
@@ -227,23 +233,23 @@ function buildPrompt() {
 
   let landmarkLine = '';
   if (landmarks.length > 0) {
-    landmarkLine = `\n\nIn the background or visible from this vantage point: ${landmarks.join(', ')}.`;
+    landmarkLine = ` The person has also noted these specific landmarks or buildings that should be considered: ${landmarks.join(', ')}.`;
   }
 
   let contextLine = '';
   if (extraContext) {
-    contextLine = `\n\nHistorical context: ${extraContext}`;
+    contextLine = ` Additional context provided: ${extraContext}`;
   }
 
   const prompt =
-`Historical scene reconstruction — ${formattedDate}
-Location: ${address}
+`I want to reconstruct what ${address} actually looked like on ${formattedDate} (${decade}), for use as an AI image generation prompt. Please research this properly rather than guessing:
 
-${photoStyle}. ${viewAngle}. ${weather} sky, ${timeOfDay}, ${season} light.
+1. Search the web for real historical information about this specific address and its surrounding block — neighborhood name and character at the time, what businesses or buildings were there, demolitions/urban renewal history if relevant, nearby landmarks or factories that would have been visible, and the general built environment (street paving, architecture style, transportation of the era).
+2. If you find a notable nearby landmark (factory, church, train depot, etc.), look up specifically what it looked like in ${year} — building materials, distinguishing features, condition.
+3. Note the season and likely weather pattern for ${formattedDate} in this location (climate-typical, not a guess at the literal day's weather).
+4. Then write me one finished, highly detailed AI image generation prompt (for Midjourney/DALL-E/Stable Diffusion) that uses everything you found — not generic decade tropes, but the actual researched details. The prompt should specify: ${photoStyle}, ${viewAngle}, ${weather} sky, ${timeOfDay}, ${season} light, and should describe specific period-accurate buildings, street conditions, people, and any real landmarks visible in the background.${landmarkLine}${contextLine}
 
-A photo-realistic scene of ${address} as it appeared on ${formattedDate}. The architecture, street surfaces, vehicles, clothing, signage, and street furniture should all be accurate to ${year} (${decade} era). Show the street as it actually existed — not idealized. Include period-accurate details: the condition of the road surface (paved, cobblestone, or dirt as appropriate for ${year}), utility poles or lack thereof, period vehicles or horse-drawn transport, residents in era-appropriate clothing.${landmarkLine}${contextLine}
-
-The image should feel like a genuine documentary photograph taken on this exact date, not a modern reconstruction or illustration. ${photoStyle}. Film grain, lens flare, and photographic artifacts appropriate to the era. No modern elements visible.`;
+Please show your research findings first (with sources), then give me the final image prompt in a clearly marked block I can copy.`;
 
   document.getElementById('prompt-text').textContent = prompt;
 
