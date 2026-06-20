@@ -45,6 +45,19 @@
   .landmark-tag { display: inline-block; background: #e8e0d0; font-size: 12px; padding: 3px 8px; margin: 3px; }
   .landmark-tag span { cursor: pointer; color: #8a4030; margin-left: 4px; }
   textarea { resize: vertical; }
+  .mode-toggle { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
+  .mode-option {
+    display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px;
+    border: 1px solid #c0b4a0; background: #faf7f2; cursor: pointer;
+  }
+  .mode-option input { width: auto; margin: 3px 0 0; flex-shrink: 0; }
+  .mode-title { font-size: 13px; color: #2a2018; }
+  .mode-desc { font-size: 11px; color: #8a7060; margin-top: 2px; line-height: 1.4; }
+  .label-block {
+    border: 1px solid #c0b4a0; background: #faf7f2; padding: 12px 14px;
+    font-size: 12px; color: #2a2018; margin-top: 14px; line-height: 1.6;
+  }
+  .label-block .lb-title { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #8a7060; margin-bottom: 6px; }
 </style>
 </head>
 <body>
@@ -90,7 +103,7 @@
   <div class="section-title">Scene look</div>
   <div class="row3">
     <div>
-      <label for="weather">Weather</label>
+      <label for="weather">Visual weather mood <span style="color:#a08060;font-weight:normal;">(artistic choice, not a historical record)</span></label>
       <select id="weather">
         <option value="overcast">Overcast / cloudy</option>
         <option value="sunny">Bright sunny</option>
@@ -121,6 +134,24 @@
     </div>
   </div>
 
+  <div class="section-title">Research mode</div>
+  <div class="mode-toggle">
+    <label class="mode-option">
+      <input type="radio" name="research-mode" value="real" checked>
+      <div>
+        <div class="mode-title">Use real historical data</div>
+        <div class="mode-desc">Claude searches the web for actual records about this address. Slower, more accurate.</div>
+      </div>
+    </label>
+    <label class="mode-option">
+      <input type="radio" name="research-mode" value="conceptual">
+      <div>
+        <div class="mode-title">Conceptual reconstruction only</div>
+        <div class="mode-desc">No lookup — Claude uses general historical knowledge and your inputs only. Faster, clearly labeled as speculative.</div>
+      </div>
+    </label>
+  </div>
+
   <div style="margin-top: 1rem;">
     <button onclick="buildPrompt()">Build prompt</button>
     <button class="secondary" onclick="clearAll()">Clear</button>
@@ -142,7 +173,12 @@
     <a class="ai-link" href="https://claude.ai/new" target="_blank">Open Claude<br><span style="color:#8a7060;font-size:11px;">Paste the prompt above here</span></a>
   </div>
 
-  <p class="note">Claude will search the web for real historical details about this address, then hand you back a finished, fact-based image prompt — same as a researcher would. That finished prompt is what you paste into the image tools below.</p>
+  <p class="note">Claude will search the web for real historical details about this address, then hand you back a finished prompt with an honest source label attached. That finished prompt is what you paste into the image tools below.</p>
+
+  <div class="label-block">
+    <div class="lb-title">What this tool actually does</div>
+    This page does not retrieve any historical data itself — it only builds a research instruction. Whether real facts get used depends on which mode you picked above. "Use real historical data" mode asks Claude to search and cite sources. "Conceptual reconstruction" mode explicitly tells Claude not to search and to label everything as speculative. Either way, the weather field is always treated as an artistic mood choice, never a verified historical record, unless Claude finds an actual dated weather record and says so.
+  </div>
 
   <hr>
 
@@ -220,6 +256,7 @@ function buildPrompt() {
   const photoStyle = document.getElementById('photo-style').value;
   const viewAngle = document.getElementById('view-angle').value;
   const extraContext = document.getElementById('extra-context').value.trim();
+  const mode = document.querySelector('input[name="research-mode"]:checked').value;
 
   if (!address || !date) {
     alert('Please enter an address and a date.');
@@ -238,18 +275,29 @@ function buildPrompt() {
 
   let contextLine = '';
   if (extraContext) {
-    contextLine = ` Additional context provided: ${extraContext}`;
+    contextLine = ` Additional context provided by the person (treat as unverified unless you can confirm it): ${extraContext}`;
   }
 
-  const prompt =
-`I want to reconstruct what ${address} actually looked like on ${formattedDate} (${decade}), for use as an AI image generation prompt. Please research this properly rather than guessing:
+  let prompt;
 
-1. Search the web for real historical information about this specific address and its surrounding block — neighborhood name and character at the time, what businesses or buildings were there, demolitions/urban renewal history if relevant, nearby landmarks or factories that would have been visible, and the general built environment (street paving, architecture style, transportation of the era).
+  if (mode === 'real') {
+    prompt =
+`I want a historically-grounded AI image prompt for ${address}, set on ${formattedDate} (${decade}). Please research this properly rather than guessing, and be explicit about what is verified versus inferred versus speculative.
+
+1. Search the web for real historical information about this specific address and its surrounding block — neighborhood name and character at the time, what businesses or buildings were there, demolitions/urban renewal history if relevant, nearby landmarks or factories that would have been visible, and the general built environment (street paving, architecture style, transportation of the era). Cite what you find.
 2. If you find a notable nearby landmark (factory, church, train depot, etc.), look up specifically what it looked like in ${year} — building materials, distinguishing features, condition.
-3. Note the season and likely weather pattern for ${formattedDate} in this location (climate-typical, not a guess at the literal day's weather).
-4. Then write me one finished, highly detailed AI image generation prompt (for Midjourney/DALL-E/Stable Diffusion) that uses everything you found — not generic decade tropes, but the actual researched details. The prompt should specify: ${photoStyle}, ${viewAngle}, ${weather} sky, ${timeOfDay}, ${season} light, and should describe specific period-accurate buildings, street conditions, people, and any real landmarks visible in the background.${landmarkLine}${contextLine}
+3. Do NOT attempt to determine the literal weather on ${formattedDate} unless you can find an actual historical weather record (e.g. NOAA archives, old newspaper weather reports) for that exact date and location. If you cannot find a verified record, say so explicitly and treat weather as an artistic choice instead — the person has suggested "${weather}" as a visual mood, not a verified condition.
+4. Then write me one finished AI image generation prompt (for Midjourney/DALL-E/Stable Diffusion) using ${photoStyle}, ${viewAngle}, ${timeOfDay}, and ${season}-appropriate light. For weather/sky, phrase it as "${weather} sky (suggested visual mood, not verified historical weather)" unless you found an actual record in step 3. Use only specific, researched details for buildings and surroundings — not generic decade tropes. Avoid phrases like "exactly how it looked" or "as it appeared on this date" — use phrasing like "a reconstruction of how it likely appeared" instead.${landmarkLine}${contextLine}
 
-Please show your research findings first (with sources), then give me the final image prompt in a clearly marked block I can copy.`;
+After your research, include a short SOURCE & ACCURACY LABEL with three sections: Verified facts (only what you actually found from real sources, with citations), Inferred (historically likely) (reasoned from era/architecture context but not directly confirmed), and Speculative / artistic reconstruction (anything not supported by records, including any weather or atmospheric choices). Then give the final image prompt in a clearly marked block I can copy.`;
+  } else {
+    prompt =
+`I want a conceptual AI image prompt for ${address}, imagined as it might have looked on ${formattedDate} (${decade}). This is a NO-LOOKUP request — please do not search the web or treat this as factual research. Use only general historical knowledge of ${decade} architecture, street design, and daily life, plus what I provide below.
+
+Write one AI image generation prompt (for Midjourney/DALL-E/Stable Diffusion) using ${photoStyle}, ${viewAngle}, ${timeOfDay}, and ${season}-appropriate light. Treat "${weather}" as a suggested visual mood only — phrase it in the prompt as "${weather} sky (artistic choice, not historical weather data)". Avoid any language implying verified accuracy — no "exactly how it looked," no "as it appeared on this date." Use phrasing like "a speculative, conceptual reconstruction" instead.${landmarkLine}${contextLine}
+
+Before the final prompt, include a short SOURCE & ACCURACY LABEL stating plainly: "This reconstruction is based on general historical knowledge and user-provided inputs. No primary historical records were queried in this session. All architectural, weather, and scene details are speculative/conceptual." Then give the final image prompt in a clearly marked block I can copy.`;
+  }
 
   document.getElementById('prompt-text').textContent = prompt;
 
