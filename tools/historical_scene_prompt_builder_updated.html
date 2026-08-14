@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historical Scene Prompt Builder</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, serif; background: #f5f0e8; color: #2a2018; padding: 2rem; min-height: 100vh; }
+  h1 { font-size: 22px; font-weight: normal; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: #6a5a48; margin-bottom: 2rem; }
+  .form-block { background: #fff; border: 1px solid #d0c4b0; padding: 1.5rem; margin-bottom: 1rem; }
+  label { display: block; font-size: 13px; color: #6a5a48; margin-bottom: 5px; }
+  input, select, textarea {
+    width: 100%; padding: 8px 10px; font-size: 14px; font-family: Georgia, serif;
+    border: 1px solid #c0b4a0; background: #faf7f2; color: #2a2018;
+    margin-bottom: 1rem;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid #8a6a40; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  button {
+    background: #3a2c18; color: #f5f0e8; border: none; padding: 10px 24px;
+    font-size: 14px; font-family: Georgia, serif; cursor: pointer;
+    margin-right: 8px; margin-bottom: 8px;
+  }
+  button:hover { background: #5a4030; }
+  button.secondary { background: #f5f0e8; color: #3a2c18; border: 1px solid #c0b4a0; }
+  button.secondary:hover { background: #e8e0d0; }
+  .output-block { background: #fff; border: 1px solid #d0c4b0; padding: 1.5rem; margin-top: 1rem; display: none; }
+  .output-block.visible { display: block; }
+  .prompt-box { background: #faf7f2; border: 1px solid #c0b4a0; padding: 1rem; font-size: 13px; line-height: 1.7; color: #2a2018; white-space: pre-wrap; min-height: 120px; }
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #8a7060; margin-bottom: 8px; margin-top: 1rem; }
+  .section-title:first-child { margin-top: 0; }
+  .note { font-size: 12px; color: #8a7060; margin-top: 6px; line-height: 1.5; }
+  .ai-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 12px; }
+  .ai-link { display: block; text-align: center; padding: 8px; border: 1px solid #c0b4a0; font-size: 12px; color: #3a2c18; text-decoration: none; background: #faf7f2; }
+  .ai-link:hover { background: #e8e0d0; }
+  .copied { color: #4a7a40; font-size: 12px; display: none; margin-left: 8px; }
+  hr { border: none; border-top: 1px solid #d0c4b0; margin: 1.5rem 0; }
+  .landmark-row { display: flex; gap: 8px; align-items: flex-end; }
+  .landmark-row input { flex: 1; margin-bottom: 0; }
+  .landmark-row button { margin: 0; padding: 8px 12px; font-size: 12px; white-space: nowrap; }
+  #landmark-list { margin-top: 6px; }
+  .landmark-tag { display: inline-block; background: #e8e0d0; font-size: 12px; padding: 3px 8px; margin: 3px; }
+  .landmark-tag span { cursor: pointer; color: #8a4030; margin-left: 4px; }
+  textarea { resize: vertical; }
+  .mode-toggle { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
+  .mode-option {
+    display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px;
+    border: 1px solid #c0b4a0; background: #faf7f2; cursor: pointer;
+  }
+  .mode-option input { width: auto; margin: 3px 0 0; flex-shrink: 0; }
+  .mode-title { font-size: 13px; color: #2a2018; }
+  .mode-desc { font-size: 11px; color: #8a7060; margin-top: 2px; line-height: 1.4; }
+  .label-block {
+    border: 1px solid #c0b4a0; background: #faf7f2; padding: 12px 14px;
+    font-size: 12px; color: #2a2018; margin-top: 14px; line-height: 1.6;
+  }
+  .label-block .lb-title { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #8a7060; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<h1>Historical Scene Prompt Builder</h1>
+<p class="sub">Enter an address and date. Get a research-and-reconstruction prompt — paste it into an AI with web access and image generation. It will research the location, interview you about the reference image, create a first reconstruction, self-check it, discuss it with you, and then create the final image.</p>
+
+<div class="form-block">
+  <div class="section-title">Location & date</div>
+  <label for="address">Street address</label>
+  <input type="text" id="address" placeholder="e.g. 1218 Jo Johnston Ave, Nashville TN" />
+
+  <div class="row">
+    <div>
+      <label for="date">Date</label>
+      <input type="date" id="date" />
+    </div>
+    <div>
+      <label for="time-of-day">Time of day</label>
+      <select id="time-of-day">
+        <option value="mid-morning">Mid-morning</option>
+        <option value="noon" selected>Noon / midday</option>
+        <option value="late afternoon">Late afternoon</option>
+        <option value="dusk">Dusk / golden hour</option>
+        <option value="night">Night</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section-title">What's in the scene</div>
+
+  <label for="extra-context">What do you personally know about this spot? <span style="color:#a08060;font-weight:normal;">(this is the most valuable input — use it)</span></label>
+  <textarea id="extra-context" rows="4" placeholder="e.g. There was a Piggly Wiggly grocery store on the left side, roughly where the parking lot is now. The right side was forest, not open field. The repair shop that's there today used to sit further back from the road."></textarea>
+  <p class="note" style="margin-top:-12px; margin-bottom:1rem;">Web search often can't find small local details — a store that closed decades ago, which side of the road something sat on, what was actually there before a field. If you know it firsthand, put it here. The tool will treat this as more reliable than its own guesses.</p>
+
+  <label for="landmarks">Known landmarks or buildings visible (optional)</label>
+  <div class="landmark-row">
+    <input type="text" id="landmark-input" placeholder="e.g. Marathon Motor Works factory" />
+    <button class="secondary" onclick="addLandmark()">Add</button>
+  </div>
+  <div id="landmark-list"></div>
+
+  <div class="section-title">Scene look</div>
+  <div class="row3">
+    <div>
+      <label for="weather">Visual weather mood <span style="color:#a08060;font-weight:normal;">(artistic choice, not a historical record)</span></label>
+      <select id="weather">
+        <option value="overcast">Overcast / cloudy</option>
+        <option value="sunny">Bright sunny</option>
+        <option value="light rain">Light rain</option>
+        <option value="snow">Snow</option>
+        <option value="foggy">Foggy / hazy</option>
+        <option value="stormy">Stormy</option>
+      </select>
+    </div>
+    <div>
+      <label for="photo-style">Photo style</label>
+      <select id="photo-style">
+        <option value="black and white, period film grain, sepia toned">B&W / sepia (period)</option>
+        <option value="full color, photorealistic">Full color photorealistic</option>
+        <option value="hand-tinted early color photograph">Hand-tinted early color</option>
+        <option value="faded color snapshot">Faded color snapshot</option>
+        <option value="daguerreotype">Daguerreotype</option>
+      </select>
+    </div>
+    <div>
+      <label for="view-angle">View angle</label>
+      <select id="view-angle">
+        <option value="street-level looking down the road">Street level looking down road</option>
+        <option value="street-level looking at the building from across the street">Street level facing building</option>
+        <option value="elevated from across the street">Elevated / slightly above</option>
+        <option value="panoramic 180-degree street view">Panoramic wide street view</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section-title">Research requirement</div>
+  <div class="label-block" style="margin-top:0;">
+    <div class="lb-title">Public-record research is required</div>
+    The generated prompt will instruct the AI to conduct a broad, systematic search of publicly accessible historical records and current-location evidence before reconstructing the scene. It will not offer a no-research shortcut, because the goal is a historically grounded reconstruction rather than a generic period scene.
+  </div>
+
+  <div style="margin-top: 1rem;">
+    <button onclick="buildPrompt()">Build prompt</button>
+    <button class="secondary" onclick="clearAll()">Clear</button>
+  </div>
+</div>
+
+<div class="output-block" id="output">
+
+  <div class="section-title">Step 1 — Paste this into Claude</div>
+
+  <div class="label-block" style="margin-top:0; margin-bottom:1rem; border-color:#8a6a40;">
+    <div class="lb-title">Before you paste this in</div>
+    Open Google Street View (or satellite view) for your address, take a screenshot, and have it ready to attach. When you paste the prompt below into an AI, attach that screenshot too. If you forget the image, the AI is instructed to stop and ask you to upload a current Street View, satellite image, or photograph before continuing. The AI will inspect the image, ask "Have you been here?", interview you about ambiguous physical details, research the public record, create a first reconstruction, self-check it, discuss it with you, and then produce the final image.
+  </div>
+
+  <div class="prompt-box" id="prompt-text"></div>
+
+  <div style="margin-top: 12px;">
+    <button onclick="copyPrompt()">Copy prompt</button>
+    <span class="copied" id="copied-msg">Copied!</span>
+    <button class="secondary" onclick="downloadPrompt()">Download as .txt</button>
+  </div>
+
+  <div class="ai-links">
+    <a class="ai-link" href="https://claude.ai/new" target="_blank">Open Claude<br><span style="color:#8a7060;font-size:11px;">Paste the prompt + your screenshot here</span></a>
+  </div>
+
+  <p class="note">The generated instructions are designed for an AI that can browse the web and generate images. It must research broadly, interview you, create a first-pass reconstruction, perform a self-check, discuss the image with you, and only then create the final reconstruction. If you do not attach a current reference image, it must stop and ask you for one.</p>
+
+  <div class="label-block">
+    <div class="lb-title">What this tool actually does</div>
+    This page does not retrieve historical data or generate images itself — it builds the instructions for the AI that does. The AI is required to conduct a broad, systematic search of publicly accessible records and current-location evidence, inspect the attached reference image, interview you, and clearly separate verified facts, your firsthand account, historically likely inference, and speculation. The current image is a spatial reference, not proof of historical conditions. The AI must also check whether the site's modern land use existed on the target date instead of projecting today's golf course, park, building, road, or landscaping backward. The weather field is a visual preference only: an actual historical weather record takes priority when one can be found; otherwise the selected weather must be explicitly labeled as a suggested visual mood, not verified historical weather.
+  </div>
+
+  <hr>
+
+  <div class="section-title">Step 2 — Once Claude gives you the finished image prompt, use it here</div>
+  <div class="ai-links">
+    <a class="ai-link" href="https://www.midjourney.com" target="_blank">Midjourney<br><span style="color:#8a7060;font-size:11px;">Best photorealism</span></a>
+    <a class="ai-link" href="https://firefly.adobe.com" target="_blank">Adobe Firefly<br><span style="color:#8a7060;font-size:11px;">Free tier available</span></a>
+    <a class="ai-link" href="https://chatgpt.com" target="_blank">ChatGPT / DALL-E<br><span style="color:#8a7060;font-size:11px;">Easy to use</span></a>
+    <a class="ai-link" href="https://www.bing.com/images/create" target="_blank">Bing Image Creator<br><span style="color:#8a7060;font-size:11px;">Free, no login</span></a>
+    <a class="ai-link" href="https://stability.ai" target="_blank">Stable Diffusion<br><span style="color:#8a7060;font-size:11px;">Most control</span></a>
+  </div>
+
+  <hr>
+
+  <div class="section-title">Optional — dig deeper yourself</div>
+  <div id="research-links"></div>
+  <p class="note">If you want to verify what Claude finds, or dig further, these open pre-loaded searches for your address and year.</p>
+
+</div>
+
+<script>
+let landmarks = [];
+
+function addLandmark() {
+  const val = document.getElementById('landmark-input').value.trim();
+  if (!val) return;
+  landmarks.push(val);
+  document.getElementById('landmark-input').value = '';
+  renderLandmarks();
+}
+
+document.getElementById('landmark-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); addLandmark(); }
+});
+
+function renderLandmarks() {
+  const el = document.getElementById('landmark-list');
+  el.innerHTML = landmarks.map((l, i) =>
+    `<span class="landmark-tag">${l}<span onclick="removeLandmark(${i})"> x</span></span>`
+  ).join('');
+}
+
+function removeLandmark(i) {
+  landmarks.splice(i, 1);
+  renderLandmarks();
+}
+
+function getSeasonFromDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T12:00:00');
+  const m = d.getMonth() + 1;
+  if (m <= 2 || m === 12) return 'winter';
+  if (m <= 5) return 'spring';
+  if (m <= 8) return 'summer';
+  return 'autumn';
+}
+
+function getDecade(dateStr) {
+  if (!dateStr) return '';
+  const y = new Date(dateStr + 'T12:00:00').getFullYear();
+  return Math.floor(y / 10) * 10 + 's';
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function buildPrompt() {
+  const address = document.getElementById('address').value.trim();
+  const date = document.getElementById('date').value;
+  const timeOfDay = document.getElementById('time-of-day').value;
+  const weather = document.getElementById('weather').value;
+  const photoStyle = document.getElementById('photo-style').value;
+  const viewAngle = document.getElementById('view-angle').value;
+  const extraContext = document.getElementById('extra-context').value.trim();
+  const mode = 'real';
+
+  if (!address || !date) {
+    alert('Please enter an address and a date.');
+    return;
+  }
+
+  const formattedDate = formatDate(date);
+  const year = new Date(date + 'T12:00:00').getFullYear();
+  const decade = getDecade(date);
+  const season = getSeasonFromDate(date);
+
+  let landmarkLine = '';
+  if (landmarks.length > 0) {
+    landmarkLine = ` The person has also noted these specific landmarks or buildings that should be considered: ${landmarks.join(', ')}.`;
+  }
+
+  let contextBlock = '';
+  if (extraContext) {
+    contextBlock = `\n\nIMPORTANT — the person has firsthand knowledge of this location that takes priority over your own web search results. Treat the following as more reliable than anything you find online, unless you find a direct source that explicitly contradicts it: "${extraContext}"\nBuild your scene around this firsthand information first, then use web research to fill in what they didn't mention.`;
+  }
+
+  let prompt;
+
+  prompt =
+`HISTORICAL SCENE RECONSTRUCTION — RESEARCH, INTERVIEW, FIRST IMAGE, SELF-CHECK, FINAL IMAGE
+
+ROLE
+Act as a historian, architectural historian, historical geographer, local-history researcher, and visual reconstruction specialist. Your job is to create a historically grounded image of ${address} on ${formattedDate} (${decade}). Do not guess when the historical record can be researched.
+
+TARGET
+Location: ${address}
+Date: ${formattedDate}
+Season: ${season}
+Time of day: ${timeOfDay}
+Preferred visual weather mood: ${weather}
+Visual style: ${photoStyle}
+Viewpoint: ${viewAngle}
+${landmarkLine}
+
+USER-SUPPLIED INFORMATION
+${extraContext ? `"${extraContext}"` : 'No firsthand location information was supplied yet.'}
+
+${extraContext ? `IMPORTANT — The person has firsthand knowledge of this location that takes priority over your own web-search inferences. Treat the supplied firsthand information as more reliable than your guesses unless a direct, highly reliable source explicitly contradicts a specific claim. Build the scene around the person's firsthand information first, then use research to fill what they did not mention.` : `The user has not supplied firsthand observations. Do not invent them. Use the reference image and historical research.`}
+
+REFERENCE IMAGE GATE — REQUIRED
+Before beginning the historical reconstruction, determine whether the user has attached a current Street View, satellite image, photograph, map image, or other visual reference of the location.
+
+IF NO REFERENCE IMAGE IS ATTACHED:
+STOP.
+Ask the user:
+"Please upload a current Street View, satellite image, or photograph of the location before I continue. I need the image to understand the present-day layout, viewpoint, terrain, buildings, vegetation, utilities, and sightlines."
+
+Do not proceed to the reconstruction until the image is attached.
+
+IF AN IMAGE IS ATTACHED:
+Inspect it carefully before researching and before interviewing the user.
+
+STEP 1 — OBSERVE THE CURRENT IMAGE
+Describe only what is actually visible. Record, where visible:
+- road surface, width, markings, curb and sidewalk
+- buildings and structures
+- signage
+- utility poles and wires
+- streetlights, including number, arm arrangement, bulb/fixture shape and length when visible
+- vegetation and mature trees
+- fences, walls and gates
+- terrain and slope
+- water features
+- vehicles
+- paths and parking
+- distant skyline and landmarks
+- shadows and lighting
+- apparent viewpoint and direction if determinable
+
+Separate observations into VISIBLE, AMBIGUOUS, and NOT VISIBLE.
+Do not treat modern features as historical facts.
+
+STEP 2 — USER INTERVIEW
+After examining the image, ask exactly:
+"Have you been here?"
+
+If the user has firsthand knowledge, ask focused one-at-a-time questions about ambiguous or important physical details rather than a long questionnaire. Examples:
+- "I see overhead lighting on the poles — can you tell me more about those?"
+- "Is that open area really open on the other side of the road, or is something hidden by the trees?"
+- "Do you know whether that building was always there, or did it replace something older?"
+
+Continue the discussion until the user indicates they are finished.
+Before beginning the first reconstruction, ask exactly:
+"Anything else before I proceed?"
+Do not skip this confirmation.
+
+STEP 3 — BROAD PUBLIC-RECORD RESEARCH
+Conduct a broad, systematic search of publicly accessible records and sources. Do not claim the research is exhaustive, but continue researching until additional searches are no longer producing materially new evidence.
+
+Search across multiple source types, including where available:
+- National Park Service / National Register documentation
+- Library of Congress
+- National Archives
+- state archives
+- county and city records
+- property, parcel, deed and tax records that are publicly accessible
+- Sanborn fire insurance maps
+- historical plat and cadastral maps
+- historic newspapers
+- city directories
+- business directories
+- university digital collections
+- local historical societies
+- historic photographs and postcards
+- USGS/topographic records
+- transportation, street, bridge and public-works records
+- historic aerial photography
+- reputable scholarly publications
+- municipal planning and engineering records
+- other primary or authoritative local-history sources
+
+Cross-check important claims using multiple independent sources when possible.
+
+Research:
+1. The exact address/property and its ownership and land use.
+2. The immediate block and adjacent streets.
+3. The surrounding neighborhood and its character on the target date.
+4. Businesses, residences, factories, churches, stations, schools or other structures that could have been nearby or visible.
+5. Street paving, transportation, utilities and architecture.
+6. Demolitions, relocations, redevelopment and urban renewal that happened later.
+7. Historic landmarks specifically enough to determine what they looked like on or before the target date.
+
+STEP 4 — CURRENT LOCATION AS CONTEXTUAL EVIDENCE
+Check the present-day location using current Street View, satellite imagery, maps, business listings or other current public sources when available.
+
+Use current evidence only for:
+- orientation
+- terrain
+- sightlines
+- persistent road alignments
+- persistent landscape features
+- clues about long-running commercial or residential nodes
+- spatial relationships
+
+Do NOT assume current buildings, golf courses, parks, paths, road surfaces, utilities, landscaping or street furniture existed historically.
+
+Explicitly investigate LAND-USE CONTINUITY:
+- Did the current land use already exist on the target date?
+- Was today's golf course, park, commercial development, road configuration or building created later?
+- Conversely, is there evidence that the site was already an estate, farm, subdivision, commercial node, industrial corridor, institutional property or other established use?
+
+Do not default to "empty rural land" simply because the exact address is hard to find in a year-specific source.
+
+If current conditions conflict with the person's firsthand account, trust the person's firsthand account unless a direct, highly reliable source explicitly contradicts it.
+
+STEP 5 — NOTABLE LANDMARKS
+For every landmark important to the view:
+- confirm that it existed by the target date
+- research its appearance as closely as possible for the relevant year
+- identify construction materials, height, roof form, windows, signs and distinguishing features
+- determine whether it could plausibly have been visible from the target location
+
+If the exact target-date appearance cannot be confirmed, say so and classify the reconstruction of that appearance as INFERRED or SPECULATIVE.
+
+STEP 6 — WEATHER RULE
+The selected weather mood is an ARTISTIC PREFERENCE, NOT HISTORICAL EVIDENCE.
+
+Search specifically for a real historical weather record for ${formattedDate} at the exact location or the nearest reliable weather station.
+
+Preferred sources:
+- NOAA / official meteorological archives
+- historical weather stations
+- contemporaneous newspapers
+- other authoritative primary weather records
+
+IF A VERIFIED HISTORICAL RECORD EXISTS:
+Use the recorded weather. It overrides the selected visual mood.
+
+IF NO VERIFIED RECORD EXISTS:
+Use "${weather}" only as an artistic choice and explicitly label it:
+"${weather} sky (suggested visual mood, not verified historical weather)"
+
+Never infer weather from the number of automobiles, perceived air pollution, or a generic assumption about the season.
+
+STEP 7 — EVIDENCE CLASSIFICATION
+Classify every meaningful scene element into:
+
+VERIFIED FACT
+Directly supported by reliable historical evidence for the relevant time.
+
+PERSON'S FIRSTHAND ACCOUNT
+Information the user directly supplied.
+
+INFERRED (HISTORICALLY LIKELY)
+Reasoned from historical context, architecture, land-use patterns, geography, current persistent features, or other evidence, but not directly confirmed for the target date.
+
+SPECULATIVE / ARTISTIC RECONSTRUCTION
+Necessary visual choices not supported by records or user observation.
+
+Never present inference or speculation as verified fact.
+
+STEP 8 — CREATE A FIRST RECONSTRUCTION
+After the user confirms there is nothing else to add, create a FIRST-PASS HISTORICAL RECONSTRUCTION.
+
+Use:
+- ${photoStyle}
+- ${viewAngle}
+- ${timeOfDay}
+- ${season}-appropriate light
+- the researched location
+- the researched land use
+- verified historical buildings and infrastructure
+- accepted user observations
+- restrained historical inference
+
+The first image should represent the historical PLACE, not a generic example of ${decade}.
+
+If using the modern reference image for composition or inpainting:
+FULLY REPLACE modern elements rather than blending them into the period scene. Remove modern lane markings, traffic signals, signs, vehicles, utility hardware, buildings, paths and landscaping where unsupported for the target date.
+
+STEP 9 — AI SELF-CHECK OF THE FIRST IMAGE
+Before showing the first reconstruction to the user, audit the image against the research.
+
+Check:
+- Did I accidentally project modern land use backward?
+- Did I use a later golf course, park, road, building or landscaping as if it existed on the target date?
+- Are all prominent buildings historically possible?
+- Did I introduce a skyline building that had not yet been built?
+- Are road surfaces and markings appropriate?
+- Are vehicles and utilities period-appropriate?
+- Did I invent a streetlight or fixture without evidence?
+- Is the landscape consistent with documented land use and regional ecology?
+- Did I mistake geology for direct evidence of vegetation or land use?
+- Did I make the atmosphere or sky clarity look historically verified when it is not?
+- Did any speculative element become visually overconfident?
+
+Correct obvious errors before presenting the first image.
+
+STEP 10 — USER REVIEW OF FIRST IMAGE
+Show the first reconstruction and discuss it with the user.
+
+Explain briefly:
+- what is verified
+- what came from the user's firsthand account
+- what is inferred
+- what is speculative
+- what was changed from the modern reference image
+
+Ask the user what should be corrected, removed or added.
+
+Incorporate the user's corrections.
+
+Do not finalize the image until the user has had an opportunity to review the first reconstruction.
+
+STEP 11 — FINAL RECONSTRUCTION
+After the user's review, create the FINAL IMAGE.
+
+The final reconstruction must incorporate:
+- verified facts
+- accepted firsthand details
+- accepted historical inferences
+- only necessary speculation
+- all corrections from the first-image review
+
+Use phrasing such as:
+"a reconstruction of how it likely appeared"
+
+Do NOT say:
+"exactly how it looked"
+"as it appeared on this date"
+
+If the image is an inpainting/edit of the modern reference image, completely replace modern elements rather than leaving faint modern traces.
+
+STEP 12 — SOURCE & ACCURACY LABEL
+After the final image, provide:
+
+VERIFIED FACTS
+Only facts directly established by real sources, with citations.
+
+PERSON'S FIRSTHAND ACCOUNT
+Everything the user directly told you during the interaction.
+
+INFERRED (HISTORICALLY LIKELY)
+Reasoned conclusions that are not directly confirmed for the target date.
+
+SPECULATIVE / ARTISTIC RECONSTRUCTION
+Anything not supported by records or user information but necessary to complete the visual scene.
+
+FINAL IMAGE PROMPT
+Then provide one clearly marked, copyable final image-generation prompt.
+
+IMPORTANT
+A historically plausible image is not necessarily a historically supported image. Prefer a less dramatic but better-supported reconstruction over a visually impressive scene filled with unsupported period clichés.`
+
+  document.getElementById('prompt-text').textContent = prompt;
+  document.getElementById('prompt-text').textContent = prompt;
+
+  buildResearchLinks(address, year);
+
+  const output = document.getElementById('output');
+  output.classList.add('visible');
+  output.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function buildResearchLinks(address, year) {
+  const enc = encodeURIComponent(address);
+  const links = [
+    { label: 'Sanborn fire maps (Library of Congress)', url: `https://www.loc.gov/collections/sanborn-maps/?q=${enc}&dates=${year-5}/${year+5}` },
+    { label: 'Historic aerial photos', url: `https://www.historicaerials.com/viewer` },
+    { label: 'Chronicling America newspapers', url: `https://chroniclingamerica.loc.gov/search/pages/results/?state=&date1=${year}&date2=${year}&dateFilterType=yearRange&words=${enc}&sort=relevance` },
+    { label: 'LOC historic photographs', url: `https://www.loc.gov/photos/?q=${enc}&dates=${year-5}/${year+5}` },
+    { label: 'Library of Congress maps', url: `https://www.loc.gov/maps/?q=${enc}&dates=${year-5}/${year+5}` },
+    { label: 'Google Earth historical imagery', url: `https://earth.google.com/web/search/${enc}` },
+  ];
+
+  const container = document.getElementById('research-links');
+  container.innerHTML = links.map(l =>
+    `<a href="${l.url}" target="_blank" style="display:block;font-size:13px;color:#3a2c18;padding:5px 0;border-bottom:1px solid #e8e0d0;text-decoration:none;">&rarr; ${l.label}</a>`
+  ).join('');
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const msg = document.getElementById('copied-msg');
+    msg.style.display = 'inline';
+    setTimeout(() => msg.style.display = 'none', 2000);
+  });
+}
+
+function downloadPrompt() {
+  const text = document.getElementById('prompt-text').textContent;
+  const address = document.getElementById('address').value.trim().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const date = document.getElementById('date').value;
+  const filename = `historical_prompt_${address}_${date}.txt`;
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+function clearAll() {
+  document.getElementById('address').value = '';
+  document.getElementById('date').value = '';
+  document.getElementById('extra-context').value = '';
+  document.getElementById('landmark-input').value = '';
+  landmarks = [];
+  renderLandmarks();
+  document.getElementById('output').classList.remove('visible');
+}
+</script>
+
+</body>
+</html>
