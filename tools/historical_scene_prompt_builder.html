@@ -63,7 +63,7 @@
 <body>
 
 <h1>Historical Scene Prompt Builder</h1>
-<p class="sub">Enter an address and date. Get a research prompt — paste it into Claude (claude.ai) and it'll dig up real historical details, then write you a finished AI image prompt.</p>
+<p class="sub">Enter an address and date. Get a research-and-reconstruction prompt — paste it into an AI with web access and image generation. It will research the location, interview you about the reference image, create a first reconstruction, self-check it, discuss it with you, and then create the final image.</p>
 
 <div class="form-block">
   <div class="section-title">Location & date</div>
@@ -134,22 +134,10 @@
     </div>
   </div>
 
-  <div class="section-title">Research mode</div>
-  <div class="mode-toggle">
-    <label class="mode-option">
-      <input type="radio" name="research-mode" value="real" checked>
-      <div>
-        <div class="mode-title">Use real historical data</div>
-        <div class="mode-desc">Claude searches the web for actual records about this address. Slower, more accurate.</div>
-      </div>
-    </label>
-    <label class="mode-option">
-      <input type="radio" name="research-mode" value="conceptual">
-      <div>
-        <div class="mode-title">Conceptual reconstruction only</div>
-        <div class="mode-desc">No lookup — Claude uses general historical knowledge and your inputs only. Faster, clearly labeled as speculative.</div>
-      </div>
-    </label>
+  <div class="section-title">Research requirement</div>
+  <div class="label-block" style="margin-top:0;">
+    <div class="lb-title">Public-record research is required</div>
+    The generated prompt will instruct the AI to conduct a broad, systematic search of publicly accessible historical records and current-location evidence before reconstructing the scene. It will not offer a no-research shortcut, because the goal is a historically grounded reconstruction rather than a generic period scene.
   </div>
 
   <div style="margin-top: 1rem;">
@@ -164,7 +152,7 @@
 
   <div class="label-block" style="margin-top:0; margin-bottom:1rem; border-color:#8a6a40;">
     <div class="lb-title">Before you paste this in</div>
-    Open Google Street View (or satellite view) for your address, take a screenshot, and have it ready to attach. When you paste the prompt below into Claude, attach that screenshot too. Claude will look at it, ask "Have you been here?", and walk through specific details with you — overhead lighting, building positions, what's really on each side of the road — before writing the final image prompt. Point out anything the photo gets wrong or doesn't show, the way you would describe it to a researcher.
+    Open Google Street View (or satellite view) for your address, take a screenshot, and have it ready to attach. When you paste the prompt below into an AI, attach that screenshot too. If you forget the image, the AI is instructed to stop and ask you to upload a current Street View, satellite image, or photograph before continuing. The AI will inspect the image, ask "Have you been here?", interview you about ambiguous physical details, research the public record, create a first reconstruction, self-check it, discuss it with you, and then produce the final image.
   </div>
 
   <div class="prompt-box" id="prompt-text"></div>
@@ -179,11 +167,11 @@
     <a class="ai-link" href="https://claude.ai/new" target="_blank">Open Claude<br><span style="color:#8a7060;font-size:11px;">Paste the prompt + your screenshot here</span></a>
   </div>
 
-  <p class="note">Claude will research the address, look at your screenshot, and talk through the details with you before writing the final image prompt — it will ask "anything else before I proceed?" so you have a chance to add anything it missed. That finished prompt is what you paste into the image tools below.</p>
+  <p class="note">The generated instructions are designed for an AI that can browse the web and generate images. It must research broadly, interview you, create a first-pass reconstruction, perform a self-check, discuss the image with you, and only then create the final reconstruction. If you do not attach a current reference image, it must stop and ask you for one.</p>
 
   <div class="label-block">
     <div class="lb-title">What this tool actually does</div>
-    This page does not retrieve any historical data itself — it only builds a research instruction, and it can't take a screenshot for you. Whether real facts get used depends on which mode you picked above. "Use real historical data" mode asks Claude to search for direct records, check the present-day location as a supporting clue, look at any screenshot you attach, and discuss it with you before writing anything. "Conceptual reconstruction" mode skips the web search but still does the screenshot discussion if you attach one. Either way, the weather field is always treated as an artistic mood choice, never a verified historical record, unless Claude finds an actual dated weather record and says so.
+    This page does not retrieve historical data or generate images itself — it builds the instructions for the AI that does. The AI is required to conduct a broad, systematic search of publicly accessible records and current-location evidence, inspect the attached reference image, interview you, and clearly separate verified facts, your firsthand account, historically likely inference, and speculation. The current image is a spatial reference, not proof of historical conditions. The AI must also check whether the site's modern land use existed on the target date instead of projecting today's golf course, park, building, road, or landscaping backward. The weather field is a visual preference only: an actual historical weather record takes priority when one can be found; otherwise the selected weather must be explicitly labeled as a suggested visual mood, not verified historical weather.
   </div>
 
   <hr>
@@ -262,7 +250,7 @@ function buildPrompt() {
   const photoStyle = document.getElementById('photo-style').value;
   const viewAngle = document.getElementById('view-angle').value;
   const extraContext = document.getElementById('extra-context').value.trim();
-  const mode = document.querySelector('input[name="research-mode"]:checked').value;
+  const mode = 'real';
 
   if (!address || !date) {
     alert('Please enter an address and a date.');
@@ -286,31 +274,273 @@ function buildPrompt() {
 
   let prompt;
 
-  if (mode === 'real') {
-    prompt =
-`I want a historically-grounded AI image prompt for ${address}, set on ${formattedDate} (${decade}). Please research this properly rather than guessing, and be explicit about what is verified versus inferred versus speculative.${contextBlock}
+  prompt =
+`HISTORICAL SCENE RECONSTRUCTION — RESEARCH, INTERVIEW, FIRST IMAGE, SELF-CHECK, FINAL IMAGE
 
-1. Search the web for real historical information about this specific address and its surrounding block — neighborhood name and character at the time, what businesses or buildings were there, demolitions/urban renewal history if relevant, nearby landmarks or factories that would have been visible, and the general built environment (street paving, architecture style, transportation of the era). Cite what you find.
-2. Also check the CURRENT state of this location (modern Street View, satellite imagery, or business listings at or near this address) as a clue, even though it's not direct evidence of ${year}. If the location today is a developed intersection, an established commercial corridor, or has a long-running business nearby (e.g. a store, gas station, or market that has operated under different names for decades), say so explicitly and factor it in — many rural and small-town crossroads have been commercial nodes for 50-100+ years, even if you can't find a record from the exact target year. Don't default to "empty rural farmland" just because no ${year}-specific record exists; weigh what the present-day development pattern suggests about historical land use here. But where the person's firsthand input above conflicts with what current Street View suggests (e.g. they say a building has moved, or something visible today wasn't there historically), trust the person's firsthand account.
-3. If you find a notable nearby landmark (factory, church, train depot, store, etc.), look up specifically what it looked like in ${year} — building materials, distinguishing features, condition. If you can't confirm the exact ${year} appearance but can confirm the landmark or business existed in some form by that date, say so and flag it as inferred rather than verified.
-4. Do NOT attempt to determine the literal weather on ${formattedDate} unless you can find an actual historical weather record (e.g. NOAA archives, old newspaper weather reports) for that exact date and location. If you cannot find a verified record, say so explicitly and treat weather as an artistic choice instead — the person has suggested "${weather}" as a visual mood, not a verified condition.
-5. STOP before writing any image prompt. If I have attached a screenshot (e.g. of Google Street View) in this conversation, look at it closely and describe in detail what you actually see — road markings, structures, signage, utility poles and the specific lighting fixtures on them (count them, note bulb arrangement and length if visible), vegetation, vehicles, terrain on both sides of the road. Then start a conversation with me by asking "Have you been here?" — and from there, walk through the specific physical details with me one at a time (e.g. "I see overhead lighting on the poles — can you tell me more about those, or anything else nearby that the photo doesn't fully show?"). Ask about anything ambiguous in the image rather than guessing. Continue this discussion, incorporating anything I tell you, until I'm done adding details. Before moving to the final prompt, ask me explicitly: "Anything else before I proceed?" Only after I confirm should you move to step 6.
-6. Once I've confirmed there's nothing else to add, write me one finished AI image generation prompt (for Midjourney/DALL-E/Stable Diffusion) using ${photoStyle}, ${viewAngle}, ${timeOfDay}, and ${season}-appropriate light, incorporating everything confirmed in our discussion plus your research. For weather/sky, phrase it as "${weather} sky (suggested visual mood, not verified historical weather)" unless you found an actual record in step 4. Use only specific, researched and discussed details for buildings and surroundings — not generic decade tropes, and not a default-empty-field assumption if step 2 or our discussion suggests otherwise. Avoid phrases like "exactly how it looked" or "as it appeared on this date" — use phrasing like "a reconstruction of how it likely appeared" instead. If this image will be generated by inpainting over a modern source photo, explicitly instruct the image generator to fully replace modern elements (asphalt lane markings, traffic signals, modern signage, parked modern cars) rather than blending or leaving faint traces of them — the scene should read as a clean period scene, not a modern photo with period elements layered on top.${landmarkLine}
+ROLE
+Act as a historian, architectural historian, historical geographer, local-history researcher, and visual reconstruction specialist. Your job is to create a historically grounded image of ${address} on ${formattedDate} (${decade}). Do not guess when the historical record can be researched.
 
-After our discussion, include a short SOURCE & ACCURACY LABEL with four sections: Verified facts (only what you actually found from real sources, with citations), Person's firsthand account (anything I told you directly, including in our discussion), Inferred (historically likely) (reasoned from era/architecture context, current-day development patterns, or present-day landmarks but not directly confirmed for ${year}), and Speculative / artistic reconstruction (anything not supported by records or our discussion). Then give the final image prompt in a clearly marked block I can copy.
+TARGET
+Location: ${address}
+Date: ${formattedDate}
+Season: ${season}
+Time of day: ${timeOfDay}
+Preferred visual weather mood: ${weather}
+Visual style: ${photoStyle}
+Viewpoint: ${viewAngle}
+${landmarkLine}
 
-(If I haven't attached a screenshot yet, ask me to paste or upload one of the current Street View or satellite image for this address before starting the discussion in step 5 — it'll help you point out specific details to ask about.)`;
-  } else {
-    prompt =
-`I want a conceptual AI image prompt for ${address}, imagined as it might have looked on ${formattedDate} (${decade}). This is a NO-LOOKUP request — please do not search the web or treat this as factual research. Use only general historical knowledge of ${decade} architecture, street design, and daily life, plus what I provide below.${contextBlock}
+USER-SUPPLIED INFORMATION
+${extraContext ? `"${extraContext}"` : 'No firsthand location information was supplied yet.'}
 
-If I have attached a screenshot (e.g. of Google Street View) in this conversation, look at it closely and describe what you see — road, structures, poles and lighting fixtures, vegetation, terrain. Then start a conversation with me by asking "Have you been here?" and walk through the physical details with me, asking about anything ambiguous rather than guessing, until I confirm there's nothing else to add — ask explicitly "Anything else before I proceed?" before moving on. If I haven't attached a screenshot, ask me to paste or upload one first.
+${extraContext ? `IMPORTANT — The person has firsthand knowledge of this location that takes priority over your own web-search inferences. Treat the supplied firsthand information as more reliable than your guesses unless a direct, highly reliable source explicitly contradicts a specific claim. Build the scene around the person's firsthand information first, then use research to fill what they did not mention.` : `The user has not supplied firsthand observations. Do not invent them. Use the reference image and historical research.`}
 
-Once confirmed, write one AI image generation prompt (for Midjourney/DALL-E/Stable Diffusion) using ${photoStyle}, ${viewAngle}, ${timeOfDay}, and ${season}-appropriate light, incorporating everything from our discussion. Treat "${weather}" as a suggested visual mood only — phrase it in the prompt as "${weather} sky (artistic choice, not historical weather data)". Avoid any language implying verified accuracy — no "exactly how it looked," no "as it appeared on this date." Use phrasing like "a speculative, conceptual reconstruction" instead. If this image will be generated by inpainting over a modern source photo, explicitly instruct the image generator to fully replace modern elements (asphalt lane markings, traffic signals, modern signage, parked modern cars) rather than blending or leaving faint traces of them.${landmarkLine}
+REFERENCE IMAGE GATE — REQUIRED
+Before beginning the historical reconstruction, determine whether the user has attached a current Street View, satellite image, photograph, map image, or other visual reference of the location.
 
-Before the final prompt, include a short SOURCE & ACCURACY LABEL with: Person's firsthand account (anything I told you directly), and Speculative / artistic reconstruction (everything else, clearly marked as not from primary records). State plainly: "No primary historical records were queried in this session." Then give the final image prompt in a clearly marked block I can copy.`;
-  }
+IF NO REFERENCE IMAGE IS ATTACHED:
+STOP.
+Ask the user:
+"Please upload a current Street View, satellite image, or photograph of the location before I continue. I need the image to understand the present-day layout, viewpoint, terrain, buildings, vegetation, utilities, and sightlines."
 
+Do not proceed to the reconstruction until the image is attached.
+
+IF AN IMAGE IS ATTACHED:
+Inspect it carefully before researching and before interviewing the user.
+
+STEP 1 — OBSERVE THE CURRENT IMAGE
+Describe only what is actually visible. Record, where visible:
+- road surface, width, markings, curb and sidewalk
+- buildings and structures
+- signage
+- utility poles and wires
+- streetlights, including number, arm arrangement, bulb/fixture shape and length when visible
+- vegetation and mature trees
+- fences, walls and gates
+- terrain and slope
+- water features
+- vehicles
+- paths and parking
+- distant skyline and landmarks
+- shadows and lighting
+- apparent viewpoint and direction if determinable
+
+Separate observations into VISIBLE, AMBIGUOUS, and NOT VISIBLE.
+Do not treat modern features as historical facts.
+
+STEP 2 — USER INTERVIEW
+After examining the image, ask exactly:
+"Have you been here?"
+
+If the user has firsthand knowledge, ask focused one-at-a-time questions about ambiguous or important physical details rather than a long questionnaire. Examples:
+- "I see overhead lighting on the poles — can you tell me more about those?"
+- "Is that open area really open on the other side of the road, or is something hidden by the trees?"
+- "Do you know whether that building was always there, or did it replace something older?"
+
+Continue the discussion until the user indicates they are finished.
+Before beginning the first reconstruction, ask exactly:
+"Anything else before I proceed?"
+Do not skip this confirmation.
+
+STEP 3 — BROAD PUBLIC-RECORD RESEARCH
+Conduct a broad, systematic search of publicly accessible records and sources. Do not claim the research is exhaustive, but continue researching until additional searches are no longer producing materially new evidence.
+
+Search across multiple source types, including where available:
+- National Park Service / National Register documentation
+- Library of Congress
+- National Archives
+- state archives
+- county and city records
+- property, parcel, deed and tax records that are publicly accessible
+- Sanborn fire insurance maps
+- historical plat and cadastral maps
+- historic newspapers
+- city directories
+- business directories
+- university digital collections
+- local historical societies
+- historic photographs and postcards
+- USGS/topographic records
+- transportation, street, bridge and public-works records
+- historic aerial photography
+- reputable scholarly publications
+- municipal planning and engineering records
+- other primary or authoritative local-history sources
+
+Cross-check important claims using multiple independent sources when possible.
+
+Research:
+1. The exact address/property and its ownership and land use.
+2. The immediate block and adjacent streets.
+3. The surrounding neighborhood and its character on the target date.
+4. Businesses, residences, factories, churches, stations, schools or other structures that could have been nearby or visible.
+5. Street paving, transportation, utilities and architecture.
+6. Demolitions, relocations, redevelopment and urban renewal that happened later.
+7. Historic landmarks specifically enough to determine what they looked like on or before the target date.
+
+STEP 4 — CURRENT LOCATION AS CONTEXTUAL EVIDENCE
+Check the present-day location using current Street View, satellite imagery, maps, business listings or other current public sources when available.
+
+Use current evidence only for:
+- orientation
+- terrain
+- sightlines
+- persistent road alignments
+- persistent landscape features
+- clues about long-running commercial or residential nodes
+- spatial relationships
+
+Do NOT assume current buildings, golf courses, parks, paths, road surfaces, utilities, landscaping or street furniture existed historically.
+
+Explicitly investigate LAND-USE CONTINUITY:
+- Did the current land use already exist on the target date?
+- Was today's golf course, park, commercial development, road configuration or building created later?
+- Conversely, is there evidence that the site was already an estate, farm, subdivision, commercial node, industrial corridor, institutional property or other established use?
+
+Do not default to "empty rural land" simply because the exact address is hard to find in a year-specific source.
+
+If current conditions conflict with the person's firsthand account, trust the person's firsthand account unless a direct, highly reliable source explicitly contradicts it.
+
+STEP 5 — NOTABLE LANDMARKS
+For every landmark important to the view:
+- confirm that it existed by the target date
+- research its appearance as closely as possible for the relevant year
+- identify construction materials, height, roof form, windows, signs and distinguishing features
+- determine whether it could plausibly have been visible from the target location
+
+If the exact target-date appearance cannot be confirmed, say so and classify the reconstruction of that appearance as INFERRED or SPECULATIVE.
+
+STEP 6 — WEATHER RULE
+The selected weather mood is an ARTISTIC PREFERENCE, NOT HISTORICAL EVIDENCE.
+
+Search specifically for a real historical weather record for ${formattedDate} at the exact location or the nearest reliable weather station.
+
+Preferred sources:
+- NOAA / official meteorological archives
+- historical weather stations
+- contemporaneous newspapers
+- other authoritative primary weather records
+
+IF A VERIFIED HISTORICAL RECORD EXISTS:
+Use the recorded weather. It overrides the selected visual mood.
+
+IF NO VERIFIED RECORD EXISTS:
+Use "${weather}" only as an artistic choice and explicitly label it:
+"${weather} sky (suggested visual mood, not verified historical weather)"
+
+Never infer weather from the number of automobiles, perceived air pollution, or a generic assumption about the season.
+
+STEP 7 — EVIDENCE CLASSIFICATION
+Classify every meaningful scene element into:
+
+VERIFIED FACT
+Directly supported by reliable historical evidence for the relevant time.
+
+PERSON'S FIRSTHAND ACCOUNT
+Information the user directly supplied.
+
+INFERRED (HISTORICALLY LIKELY)
+Reasoned from historical context, architecture, land-use patterns, geography, current persistent features, or other evidence, but not directly confirmed for the target date.
+
+SPECULATIVE / ARTISTIC RECONSTRUCTION
+Necessary visual choices not supported by records or user observation.
+
+Never present inference or speculation as verified fact.
+
+STEP 8 — CREATE A FIRST RECONSTRUCTION
+After the user confirms there is nothing else to add, create a FIRST-PASS HISTORICAL RECONSTRUCTION.
+
+Use:
+- ${photoStyle}
+- ${viewAngle}
+- ${timeOfDay}
+- ${season}-appropriate light
+- the researched location
+- the researched land use
+- verified historical buildings and infrastructure
+- accepted user observations
+- restrained historical inference
+
+The first image should represent the historical PLACE, not a generic example of ${decade}.
+
+If using the modern reference image for composition or inpainting:
+FULLY REPLACE modern elements rather than blending them into the period scene. Remove modern lane markings, traffic signals, signs, vehicles, utility hardware, buildings, paths and landscaping where unsupported for the target date.
+
+STEP 9 — AI SELF-CHECK OF THE FIRST IMAGE
+Before showing the first reconstruction to the user, audit the image against the research.
+
+Check:
+- Did I accidentally project modern land use backward?
+- Did I use a later golf course, park, road, building or landscaping as if it existed on the target date?
+- Are all prominent buildings historically possible?
+- Did I introduce a skyline building that had not yet been built?
+- Are road surfaces and markings appropriate?
+- Are vehicles and utilities period-appropriate?
+- Did I invent a streetlight or fixture without evidence?
+- Is the landscape consistent with documented land use and regional ecology?
+- Did I mistake geology for direct evidence of vegetation or land use?
+- Did I make the atmosphere or sky clarity look historically verified when it is not?
+- Did any speculative element become visually overconfident?
+
+Correct obvious errors before presenting the first image.
+
+STEP 10 — USER REVIEW OF FIRST IMAGE
+Show the first reconstruction and discuss it with the user.
+
+Explain briefly:
+- what is verified
+- what came from the user's firsthand account
+- what is inferred
+- what is speculative
+- what was changed from the modern reference image
+
+Ask the user what should be corrected, removed or added.
+
+Incorporate the user's corrections.
+
+Do not finalize the image until the user has had an opportunity to review the first reconstruction.
+
+STEP 11 — FINAL RECONSTRUCTION
+After the user's review, create the FINAL IMAGE.
+
+The final reconstruction must incorporate:
+- verified facts
+- accepted firsthand details
+- accepted historical inferences
+- only necessary speculation
+- all corrections from the first-image review
+
+Use phrasing such as:
+"a reconstruction of how it likely appeared"
+
+Do NOT say:
+"exactly how it looked"
+"as it appeared on this date"
+
+If the image is an inpainting/edit of the modern reference image, completely replace modern elements rather than leaving faint modern traces.
+
+STEP 12 — SOURCE & ACCURACY LABEL
+After the final image, provide:
+
+VERIFIED FACTS
+Only facts directly established by real sources, with citations.
+
+PERSON'S FIRSTHAND ACCOUNT
+Everything the user directly told you during the interaction.
+
+INFERRED (HISTORICALLY LIKELY)
+Reasoned conclusions that are not directly confirmed for the target date.
+
+SPECULATIVE / ARTISTIC RECONSTRUCTION
+Anything not supported by records or user information but necessary to complete the visual scene.
+
+FINAL IMAGE PROMPT
+Then provide one clearly marked, copyable final image-generation prompt.
+
+IMPORTANT
+A historically plausible image is not necessarily a historically supported image. Prefer a less dramatic but better-supported reconstruction over a visually impressive scene filled with unsupported period clichés.`
+
+  document.getElementById('prompt-text').textContent = prompt;
   document.getElementById('prompt-text').textContent = prompt;
 
   buildResearchLinks(address, year);
@@ -327,7 +557,7 @@ function buildResearchLinks(address, year) {
     { label: 'Historic aerial photos', url: `https://www.historicaerials.com/viewer` },
     { label: 'Chronicling America newspapers', url: `https://chroniclingamerica.loc.gov/search/pages/results/?state=&date1=${year}&date2=${year}&dateFilterType=yearRange&words=${enc}&sort=relevance` },
     { label: 'LOC historic photographs', url: `https://www.loc.gov/photos/?q=${enc}&dates=${year-5}/${year+5}` },
-    { label: 'Nashville Public Library digital archive', url: `https://digital.library.nashville.org/digital/search/searchterm/${enc}` },
+    { label: 'Library of Congress maps', url: `https://www.loc.gov/maps/?q=${enc}&dates=${year-5}/${year+5}` },
     { label: 'Google Earth historical imagery', url: `https://earth.google.com/web/search/${enc}` },
   ];
 
